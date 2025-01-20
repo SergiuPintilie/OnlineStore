@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container-fluid">
+        <a class="navbar-brand">TechStore</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="#">About Us</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Produse
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" th:href="@{/produse}">Toate Produse</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" th:href="@{/telefoane}">Telefoane</a></li>
+                        <li><a class="dropdown-item" th:href="@{/laptopuri}">Laptopuri</a></li>
+                        <li><a class="dropdown-item" th:href="@{/tablete}">Tablete</a></li>
+                    </ul>
+                </li>
+            </ul>
+            <form class="d-flex m-auto" role="search" th:action="@{/search}" method="get">
+                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="keyWord">
+                <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+</nav>
+<form>
+    <input class="form-control" type="text" placeholder="Email" aria-label="email" id="email">
+    <input class="form-control" type="password" placeholder="Password" aria-label="password" id="password">
+    <button class="btn btn-outline-success" type="submit" id="submit">Login</button>
+</form>
+</body>
+<script>
+    function sendRequest(event) {
+        event.preventDefault(); // Prevent the default form submission behavior
+
+        const email = document.getElementById("email").value;
+        const data = {
+            email: email,
+            password: document.getElementById("password").value
+        };
+        console.log(data);
+
+        fetch("/security/authenticate", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error("Request failed");
+                }
+            })
+            .then(responseData => {
+                console.log(responseData);
+                console.log(responseData.token);
+                localStorage.setItem("jwt", responseData.token);
+                console.log(responseData.role);
+                if(responseData.role=="ADMIN"){
+                    redirectAdmin();
+                }
+                else{redirectUser()}// Call the redirect function after successful login
+            })
+            .catch(error => {
+                console.error("Error: " + error);
+                window.location.href = "/login"; // Redirect to the login page in case of an error
+            });
+    }
+    function redirectAdmin() {
+        console.log("redirect")
+        const token = localStorage.getItem("jwt");
+
+        if (token) {
+            const headers = new Headers();
+            headers.append('Authorization', `Bearer ${token}`);
+            console.log(headers.get("Authorization"));
+
+            fetch("/admin_panel", {
+                method: 'GET', // or other HTTP method
+                headers: headers,
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.text(); // Convert the response to text
+                    } else {
+                        throw new Error("Request failed");
+                    }
+                })
+                .then(htmlContent => {
+                    // Replace the current page's content with the fetched HTML content
+                    document.open();
+                    document.write(htmlContent);
+                    document.close();
+
+                    // Use the History API to change the URL without reloading the page
+                    history.pushState(null, null, "/admin_panel");
+                })
+                .catch(error => {
+                    console.error("Error: " + error);
+                });
+        } else {
+            // Handle the case where there is no token in localStorage
+            // You can choose to redirect or display an error message, for example
+        }
+    }
+    function redirectUser() {
+        console.log("redirect")
+        const token = localStorage.getItem("jwt");
+
+        if (token) {
+            const headers = new Headers();
+            headers.append('Authorization', `Bearer ${token}`);
+            console.log(headers.get("Authorization"));
+
+            fetch("/", {
+                method: 'GET', // or other HTTP method
+                headers: headers,
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.text(); // Convert the response to text
+                    } else {
+                        throw new Error("Request failed");
+                    }
+                })
+                .then(htmlContent => {
+                    // Replace the current page's content with the fetched HTML content
+                    document.open();
+                    document.write(htmlContent);
+                    document.close();
+
+                    // Use the History API to change the URL without reloading the page
+                    history.pushState(null, null, "/");
+                })
+                .catch(error => {
+                    console.error("Error: " + error);
+                });
+        } else {
+            // Handle the case where there is no token in localStorage
+            // You can choose to redirect or display an error message, for example
+        }
+    }
+    document.getElementById("submit").addEventListener("click", sendRequest);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+</html>
